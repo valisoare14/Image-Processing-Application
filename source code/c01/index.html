@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+<form id="form">
+    <fieldset style="display: flex; flex-direction:column; gap: 10px">
+	    <input id="fileInput" type="file"/>
+	    <legend>Select Zoom Options</legend>
+	    <label>
+	        <input id="zoomInInput" type="checkbox" name="zoom" value="Zoom In" checked="checked">
+	        Zoom In
+	    </label>
+	    <span>Zoom In between 100 and 999</span>
+	    <label>
+	        <input id="zoomOutInput" type="checkbox" name="zoom" value="Zoom Out">
+	        Zoom Out
+	    </label>
+	    <span>Zoom Out between 1 and 999</span>
+	    <input id="percentageInput" type="number" style="width: 200px"/>
+	    <button type="submit" id="uploadButton" style="border-radius: 2px; width: 100px; height: 20px">Upload</button>
+     </fieldset>
+     <div>
+     <h1 style="color: red; margin-bottom: 20px">
+     	DISCLAIMER
+     </h1>
+     <h2>
+     	Containers c01, c02, c03, c04 and c05 were implemented <br/>
+     	The zoomed imaged, after received from c04 and c05 is merged and saved under name "zoomed_image_...png" <br/>
+     	locally in container c03 under path '/home/stud'.
+     </h2>
+     </div>
+</form>
+    <script>
+    const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadButton");
+    const zoomInInput = document.getElementById("zoomInInput");
+    const zoomOutInput = document.getElementById("zoomOutInput");
+    const percentageInput = document.getElementById("percentageInput");
+    const form = document.getElementById("form");
+
+    zoomInInput.addEventListener('click',check);
+    zoomOutInput.addEventListener('click',check);
+    let selectedFile = null;
+    let zoomPercentage = null;
+    let zoomOption = zoomInInput.value;
+
+    fileInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file && file.type === "image/png") {
+            selectedFile = file;
+        } else {
+            alert("Please select a valid PNG file.");
+            selectedFile = null;
+        }
+    });
+    
+    percentageInput.addEventListener('change', (event) => {
+    	if (event.target.value < 0 || event.target.value >1000 || (zoomOption === "Zoom In" && (event.target.value < 100 || event.target.value >1000))) {
+    		alert("Please select a valid percentage value");
+    	} else {
+    		zoomPercentage = event.target.value;
+    	}
+    })
+
+    form.addEventListener('submit', async () => {
+    	if (!selectedFile) {
+    		alert("Please select a PNG file.");
+    		return;
+    	}
+    	if (!zoomPercentage) {
+    		alert("Please select a zoom percentage.");
+    		return;
+    	}
+    	const formData = new FormData();
+    	formData.append("selectedFile", selectedFile);
+		formData.append("zoomPercentage", zoomPercentage);
+		formData.append("zoomOption", zoomOption);
+		let response = null;
+		try {
+	        response = await fetch("http://localhost:8080/jee_be/ImageServlet", {
+	            method: "POST",
+	            body: formData
+	        });
+
+	        if (!response.ok) {
+	            throw new Error(`Server responded with status: ${response.status}`);
+	        }
+
+	        const result = await response.text();
+
+	        alert("Upload successful! Server response: " + result);
+	        console.log("Server response:", result);
+	    } catch (error) {
+	    	// checked the response also here because of async delay
+	    	if (response.ok) {
+	    		console.log(1)
+	    		const result = await response.text();
+		        alert("Upload successful! Server response: " + result);
+	    	} else {
+		        alert("Upload failed: " + error.message);
+		        console.error("Upload failed:", error);
+	    	}
+	    }
+    });
+    
+    function check(event) {
+    	if (event.target.id === "zoomInInput") {
+    		zoomOutInput.checked = false;
+    		if (!zoomInInput.checked) {
+    			zoomInInput.checked = true;
+    		}
+    	} else {
+    		zoomInInput.checked = false;
+    		if (!zoomOutInput.checked) {
+    			zoomOutInput.checked = true;
+    		}
+    	}
+    	zoomOption = event.target.value;
+    }
+    </script>
+</body>
+</html>
